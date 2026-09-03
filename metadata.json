@@ -1,0 +1,6 @@
+{
+  "name": "MāpDrishti (मापदृष्टि)",
+  "description": "Automated compliance checker for packaged commodities under India's Legal Metrology (Packaged Commodities) Rules, 2011 (Smart India Hackathon SIH26034).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
