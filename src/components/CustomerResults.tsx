@@ -3,7 +3,7 @@ import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Scale } from 'lucide-r
 
 interface CustomerResultsProps {
   results: {
-    state: string;
+    status: 'pass' | 'warning' | 'fail';
     verdict: string;
     issues: string[];
   };
@@ -11,9 +11,9 @@ interface CustomerResultsProps {
 }
 
 export const CustomerResults: React.FC<CustomerResultsProps> = ({ results, onReset }) => {
-  const isGreen = results.state === 'green';
-  const isYellow = results.state === 'yellow';
-  const isRed = results.state === 'red';
+  const isGreen = results.status === 'pass';
+  const isYellow = results.status === 'warning';
+  const isRed = results.status === 'fail';
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 font-sans flex flex-col">
