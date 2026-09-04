@@ -3,10 +3,10 @@ import { UploadCloud, X, Camera, Zap, ShieldCheck, Scale, FileImage, AlertCircle
 import { CustomerResults } from './CustomerResults';
 
 export const CustomerPage: React.FC = () => {
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{file: File, url: string}[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<{ status: 'pass' | 'warning' | 'fail'; verdict: string; issues: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -21,22 +21,61 @@ export const CustomerPage: React.FC = () => {
       return;
     }
 
-    newFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result && typeof e.target.result === 'string') {
-          setImages((prev) => [...prev, e.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    const newImages = newFiles.map(file => ({
+      file,
+      url: URL.createObjectURL(file)
+    }));
+
+    setImages(prev => [...prev, ...newImages]);
   };
 
   const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImages((prev) => {
+      const newImages = [...prev];
+      URL.revokeObjectURL(newImages[index].url); // cleanup
+      newImages.splice(index, 1);
+      return newImages;
+    });
   };
 
-  const handleCheckProduct = () => {
+  // Placeholder function simulating an API call
+  const simulateGeminiAPI = (files: File[]): Promise<{ status: 'pass' | 'warning' | 'fail'; verdict: string; issues: string[] }> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const statuses: ('pass' | 'warning' | 'fail')[] = ['pass', 'warning', 'fail'];
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+        if (randomStatus === 'pass') {
+          resolve({
+            status: 'pass',
+            verdict: 'Looks Fine',
+            issues: []
+          });
+        } else if (randomStatus === 'warning') {
+          resolve({
+            status: 'warning',
+            verdict: 'Check Before Buying',
+            issues: [
+              'Missing clear price information',
+              'Manufacturer address is incomplete'
+            ]
+          });
+        } else {
+          resolve({
+            status: 'fail',
+            verdict: 'Missing Important Info',
+            issues: [
+              'No expiry or manufacturing date found',
+              'Missing net weight declaration',
+              "Can't find customer care details"
+            ]
+          });
+        }
+      }, 2000);
+    });
+  };
+
+  const handleCheckProduct = async () => {
     if (images.length === 0) {
       setErrorMessage("Please upload at least one image.");
       return;
@@ -44,45 +83,19 @@ export const CustomerPage: React.FC = () => {
     setIsScanning(true);
     setErrorMessage(null);
 
-    // Placeholder for backend call
-    setTimeout(() => {
+    try {
+      const actualFiles = images.map(img => img.file);
+      const result = await simulateGeminiAPI(actualFiles);
+      setResults(result);
+    } catch (error) {
+      setErrorMessage("Failed to check product. Please try again.");
+    } finally {
       setIsScanning(false);
-      // Simulate random result for demo purposes
-      const states = ["green", "yellow", "red"];
-      const randomState = states[Math.floor(Math.random() * states.length)];
-
-      let mockResult = {};
-      if (randomState === "green") {
-        mockResult = {
-          state: "green",
-          verdict: "Looks Fine",
-          issues: []
-        };
-      } else if (randomState === "yellow") {
-        mockResult = {
-          state: "yellow",
-          verdict: "Check Before Buying",
-          issues: [
-            "Missing clear price information",
-            "Manufacturer address is incomplete"
-          ]
-        };
-      } else {
-        mockResult = {
-          state: "red",
-          verdict: "Missing Important Info",
-          issues: [
-            "No expiry or manufacturing date found",
-            "Missing net weight declaration",
-            "Can't find customer care details"
-          ]
-        };
-      }
-      setResults(mockResult);
-    }, 2000);
+    }
   };
 
   const handleReset = () => {
+    images.forEach(img => URL.revokeObjectURL(img.url)); // cleanup memory
     setImages([]);
     setResults(null);
     setErrorMessage(null);
@@ -123,7 +136,7 @@ export const CustomerPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 mb-6">
               {images.map((img, idx) => (
                 <div key={idx} className="relative rounded-2xl border border-zinc-800 bg-black overflow-hidden aspect-video flex items-center justify-center group">
-                  <img src={img} alt={`Preview ${idx + 1}`} className="max-h-full max-w-full object-contain" />
+                  <img src={img.url} alt={`Preview ${idx + 1}`} className="max-h-full max-w-full object-contain" />
                   <button
                     onClick={() => removeImage(idx)}
                     className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-zinc-300 hover:text-white hover:bg-red-500/80 transition-colors opacity-0 group-hover:opacity-100"
